@@ -1,0 +1,83 @@
+=====================================================
+SHORT REFLECTION — Gacha Drop Rate Simulator
+วันที่: 4 มิถุนายน 2569
+=====================================================
+
+─────────────────────────────────────────────────────
+ทำจริงเป็นอย่างไร
+─────────────────────────────────────────────────────
+เริ่มจากให้ AI อ่านโจทย์จากไฟล์ Excel โดยตรง แล้วออกแบบ logic ทั้งหมดก่อนลงมือเขียน
+โค้ด จากนั้นสร้าง HTML ไฟล์เดียวที่ครอบคลุมทุก requirement ในรอบเดียว
+
+ขั้นตอนจริงที่ทำ:
+1. ให้ AI อ่าน Excel และสรุปสิ่งที่ต้องทำ (Must / Advanced / Bonus)
+2. AI ออกแบบ state, simulation logic, validation, CSV export พร้อมกัน
+3. สร้าง HTML ไฟล์เดียว (~775 บรรทัด) ด้วย vanilla JS ไม่ใช้ library ใดๆ
+4. เปิด preview server เพื่อทดสอบใน browser จริง
+5. รัน automated tests ผ่าน browser console ตรวจสอบ logic ทุกจุด
+6. แก้ไข 2 จุดที่พบระหว่างรีเชค
+
+เวลาที่ใช้: ประมาณ 30-45 นาที (ทั้ง build + review + fix)
+
+─────────────────────────────────────────────────────
+จุดที่ทำได้ดี
+─────────────────────────────────────────────────────
+1. ออกแบบ simulation logic ได้ถูกต้องตั้งแต่ต้น
+   - สุ่ม rarity ก่อนด้วย cumulative probability แล้วค่อยสุ่ม item จาก pool
+   - Free roll คำนวณจาก paid rolls เท่านั้น ไม่ compounding
+   - Pity counter reset อัตโนมัติเมื่อได้ SSR
+
+2. ครอบคลุมทุก feature ในรอบเดียวโดยไม่ต้องกลับมาแก้ logic หลัก
+   - Must Have ครบ, Advanced ครบ, Bonus ครบทุกข้อ
+
+3. CSV export รองรับภาษาไทยใน Excel โดยใส่ BOM character
+
+4. UI อ่านง่าย ไม่รก — dark theme, color-coded rarity, bar chart เปรียบเทียบ
+   rate ที่ตั้งไว้กับ actual rate ที่ออกมา
+
+5. Automated testing — ใช้ browser console รัน test จริงกับ logic ในไฟล์
+   แทนที่จะแค่ดู UI เพื่อให้มั่นใจว่า edge cases ทำงานถูก
+
+─────────────────────────────────────────────────────
+ติดปัญหาตรงไหน
+─────────────────────────────────────────────────────
+1. Python ไม่ได้ติดตั้งในเครื่อง
+   - AI skill ปกติใช้ Python + openpyxl อ่านไฟล์ Excel
+   - แก้โดย: แตก xlsx เป็น zip แล้วอ่าน XML โดยตรง และสร้าง
+     PowerShell HTTP server แทน Python's http.server
+
+2. Preview server ไม่สามารถเริ่มได้ตั้งแต่ต้น
+   - launch.json ของ project ชี้ไปที่ Python ที่ไม่มี
+   - แก้โดย: เขียน PowerShell script serve-gacha.ps1 แล้วเพิ่ม
+     configuration ใหม่ใน launch.json
+
+─────────────────────────────────────────────────────
+AI แนะนำผิดแล้วแก้ยังไง
+─────────────────────────────────────────────────────
+1. ชื่อปุ่ม "+ เพิ่ม" vs "+ Add Item"
+   - AI ตั้งชื่อปุ่มเป็นภาษาไทย "+ เพิ่ม" ซึ่งดูเป็นธรรมชาติ
+   - แต่โจทย์ระบุชัดเจนในหัวข้อ HTML Output ว่าต้องใช้ "ปุ่ม + Add Item"
+   - แก้โดย: รีเชคโจทย์ word-for-word แล้วแก้ปุ่มให้ตรง spec
+
+2. scrollTo() function ชื่อชนกับ window.scrollTo()
+   - AI สร้าง function ชื่อ scrollTo() ซึ่ง shadow browser built-in
+   - ทำให้ external code ที่เรียก window.scrollTo() ไม่ทำงานตามปกติ
+   - แก้โดย: rename เป็น scrollToEl() และอัปเดต call sites ทุกจุด
+   - พบปัญหานี้ระหว่าง test ด้วย browser console ที่เรียก window.scrollTo(0, 800)
+     แล้วได้ error: "Cannot read properties of null (reading 'scrollIntoView')"
+
+─────────────────────────────────────────────────────
+บทเรียนที่ได้
+─────────────────────────────────────────────────────
+- การให้ AI สร้าง automated tests แล้วรันผ่าน browser console
+  เป็นวิธีที่ดีกว่าแค่ดู UI — ตรวจ edge cases ได้เร็วและครอบคลุมกว่า
+
+- ควรรีเชค spec word-for-word ก่อนส่ง เพราะ AI จะ "เดา" บางจุด
+  ที่ดูสมเหตุสมผล แต่ไม่ตรงกับที่โจทย์ระบุจริงๆ
+
+- การที่ AI อ่านทุก tab ของ Excel ก่อนลงมือทำ ช่วยให้เห็นภาพรวมครบ
+  ไม่ต้องย้อนกลับมาแก้ feature ที่ลืมทีหลัง
+
+=====================================================
+END OF REFLECTION
+=====================================================

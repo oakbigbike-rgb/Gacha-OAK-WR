@@ -1,0 +1,125 @@
+=====================================================
+PROMPT HISTORY — Gacha Drop Rate Simulator
+วันที่: 4 มิถุนายน 2569
+ผู้ทำ: oakbigbike-rgb
+เครื่องมือ AI: Claude Sonnet 4.6 (Claude Code)
+=====================================================
+
+─────────────────────────────────────────────────────
+PROMPT 1 — อ่านโจทย์และเริ่มทำ
+─────────────────────────────────────────────────────
+User:
+@"C:\Users\oakbi\Downloads\gacha_drop_rate_simulator_exam_Final25-5-26.xlsx"
+ตรวจเช็คให้หน่อยว่าโจทย์เค้าต้องการให้ทำอะไรบ้างแล้วเริ่มทำได้เลย
+
+AI Process:
+- อ่านไฟล์ Excel โดยแตก zip แล้วอ่าน XML ของแต่ละ sheet (เนื่องจาก Python ไม่ได้ติดตั้งในเครื่อง)
+- สรุป sheet ที่พบ: เริ่มต้น, โจทย์หลัก, รายละเอียดงาน, HTML Output, Tech Stack, เกณฑ์ตรวจ
+- วิเคราะห์ requirements ทั้งหมด: Must Have (8 ข้อ), Advanced (2 ข้อ), Bonus (5 ข้อ)
+- สร้างไฟล์ gacha-simulator.html ไฟล์เดียว ครบทุก feature ในคำสั่งเดียว
+
+Output: gacha-simulator.html (775 บรรทัด, vanilla HTML/CSS/JS)
+
+─────────────────────────────────────────────────────
+PROMPT 2 — ขอลิงก์ไฟล์มาลองเล่น
+─────────────────────────────────────────────────────
+User:
+ขอลิ้งไฟล์มาลองเล่นหน่อย
+
+AI Response:
+- แจ้ง path ไฟล์: C:\Users\oakbi\Downloads\gacha-simulator.html
+- แจ้ง preview URL: http://localhost:3001
+  (สร้าง PowerShell HTTP server ชั่วคราวเนื่องจาก Python ไม่ได้ติดตั้ง)
+
+─────────────────────────────────────────────────────
+PROMPT 3 — รีเชคกับโจทย์
+─────────────────────────────────────────────────────
+User:
+รีเชคกับโจทย์อีกรอบว่าทำถูกทั้งหมดตามที่โจทย์กำหนดมั้ย
+
+AI Process:
+- อ่านโค้ดทั้งหมดใน gacha-simulator.html อีกรอบ
+- เปรียบเทียบกับ requirements ทุกข้อ
+- พบ 2 จุดที่ต้องแก้:
+  1. ปุ่ม "+ เพิ่ม" → ควรเป็น "+ Add Item" ตามที่โจทย์ระบุ
+  2. function scrollTo() → shadow window.scrollTo() ของ browser (rename เป็น scrollToEl)
+
+AI Fix:
+- แก้ปุ่มจาก "+ เพิ่ม" เป็น "+ Add Item"
+- Rename function scrollTo → scrollToEl และอัปเดต call sites ทั้งหมด
+
+─────────────────────────────────────────────────────
+PROMPT 4 — รีเชครอบสุดท้าย
+─────────────────────────────────────────────────────
+User:
+รีเชคอีกรอบว่าครบถ้วนแล้วพร้อมส่งมั้ย
+
+AI Process:
+รัน automated tests 15 รายการผ่าน browser console:
+1. Rate ไม่ครบ 100% → แสดง error ✓
+2. Rate ติดลบ → block simulation ✓
+3. Item pool ว่าง (rarity มี rate>0) → block ✓
+4. Rolls = 0 → error ✓
+5. Rolls > 100,000 → error ✓
+6. Price < 0 → error ✓
+7. Simulation logic → SSR จริง ~1% (ได้ 1.1% จาก 10,000 rolls) ✓
+8. Free Roll: floor(100/10)×1 = 10, no compounding ✓
+9. Pity: pityCnt≥threshold-1 → force SSR ✓
+10. Pity reset เมื่อได้ SSR ✓
+11. History จำกัด 10 รายการ ✓
+12. Add/Delete Item pool ✓
+13. Simulation count 50 (ต่ำกว่า 100) → block ✓
+14. CSV มีครบทุก field ✓
+15. Responsive บนมือถือ (375px) ✓
+
+ผล: ผ่านทุก test → พร้อมส่ง
+
+─────────────────────────────────────────────────────
+PROMPT 5 — สร้างไฟล์ส่งงาน
+─────────────────────────────────────────────────────
+User:
+ทำให้ครบทั้งหมด
+
+AI Process:
+- สร้าง prompt-history.txt (ไฟล์นี้)
+- สร้าง reflection.txt (short reflection)
+
+=====================================================
+สรุป Logic ที่ออกแบบ
+=====================================================
+
+Single Simulation Logic:
+  1. รับ input: rolls (N), price, pity on/off, free roll on/off
+  2. คำนวณ free rolls = floor(N / every) × grant
+  3. total rolls = N + free rolls
+  4. loop total rolls ครั้ง:
+     a. ตรวจ pity: ถ้า pityCnt >= threshold-1 → force SSR, reset pityCnt
+     b. ถ้าไม่ → rand = Math.random() × 100
+        สะสม cumulative: SSR → SR → R → N จนถึง rand < cumulative
+     c. เลือก item จาก pool ของ rarity นั้น (Math.random)
+  5. รวม counts, itemCounts, rollLog
+
+Free Roll Rule:
+  free = floor(paidRolls / every) × grant
+  → คำนวณจาก paid rolls เท่านั้น
+  → free rolls ไม่สร้าง free rolls (ไม่ recursive)
+
+Pity System:
+  pityCnt เพิ่มทุก roll ที่ไม่ได้ SSR
+  pityCnt reset เป็น 0 ทุกครั้งที่ได้ SSR
+  ถ้า pityCnt >= threshold-1 → roll ถัดไปการันตี SSR
+
+Monte Carlo (Player POV):
+  loop simN ครั้ง:
+    ใช้ paidRolls + freeRolls เป็น total rolls ต่อรอบ
+    นับ SSR count ต่อรอบ
+  คำนวณ P(SSR≥1), P(SSR=0), average, best, worst
+
+CSV Export:
+  Pull Result: Roll No., Rarity, Item Name, Cost Type, Cost
+  POV Summary: Budget, Price, Paid, Free, Total, SimN, P1, P0, Avg, Best, Worst, Rates
+  ทั้งคู่ใช้ BOM (﻿) + UTF-8 เพื่อรองรับภาษาไทยใน Excel
+
+=====================================================
+END OF PROMPT HISTORY
+=====================================================
