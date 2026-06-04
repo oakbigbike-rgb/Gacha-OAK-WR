@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gacha Drop Rate Simulator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f1a;--card:#1a1a2e;--border:#2d2d4e;
+  --text:#e0e0ff;--text2:#8080a0;
+  --ssr:#ffd700;--sr:#c77dff;--r:#48cae4;--n:#909090;
+  --green:#4caf50;--red:#f44336;--accent:#7b68ee;--orange:#ff9800;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1a0033 0%,#0f0f3a 50%,#001a33 100%);padding:28px 20px;text-align:center;border-bottom:2px solid var(--accent);position:relative;overflow:hidden}
+.header h1{font-size:clamp(22px,4vw,38px);background:linear-gradient(90deg,var(--ssr),var(--accent),var(--r));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;font-weight:800}
+.header p{color:var(--text2);font-size:13px}
+
+/* Layout */
+.container{max-width:1100px;margin:0 auto;padding:0 14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+
+/* Card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:14px}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.card-head h2{font-size:15px;font-weight:700}
+.card-head .tag{font-size:10px;color:var(--text2);margin-left:auto;background:rgba(123,104,238,.15);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
+
+/* Inputs */
+input[type=text],input[type=number],select{background:#0a0a1f;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;width:100%;transition:border-color .2s}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input.err{border-color:var(--red)!important}
+label.lbl{display:block;font-size:11px;color:var(--text2);margin-bottom:4px}
+
+/* Buttons */
+.btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--accent),#5a48cc);color:#fff}
+.btn-p:hover{opacity:.88}
+.btn-g{background:linear-gradient(135deg,#2e7d32,var(--green));color:#fff}
+.btn-g:hover{opacity:.88}
+.btn-b{background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff}
+.btn-b:hover{opacity:.88}
+.btn-sm{padding:3px 9px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid;background:transparent;cursor:pointer;transition:all .15s}
+.btn-del{color:var(--red);border-color:var(--red)}
+.btn-del:hover{background:var(--red);color:#fff}
+.btn-edt{color:var(--accent);border-color:var(--accent)}
+.btn-edt:hover{background:var(--accent);color:#fff}
+.btn-lg{width:100%;padding:13px;font-size:15px;border-radius:10px;margin-top:8px}
+.btn-dis{opacity:.4;cursor:not-allowed!important}
+
+/* Rate */
+.rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rate-total{margin-top:10px;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:700;text-align:center;transition:all .3s}
+.ok{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.4)}
+.err-box{background:rgba(244,67,54,.15);color:var(--red);border:1px solid rgba(244,67,54,.4)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px}
+.b-ssr{background:rgba(255,215,0,.15);color:var(--ssr);border:1px solid rgba(255,215,0,.4)}
+.b-sr{background:rgba(199,125,255,.15);color:var(--sr);border:1px solid rgba(199,125,255,.4)}
+.b-r{background:rgba(72,202,228,.15);color:var(--r);border:1px solid rgba(72,202,228,.4)}
+.b-n{background:rgba(144,144,144,.15);color:var(--n);border:1px solid rgba(144,144,144,.4)}
+
+/* Item form */
+.item-form{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:flex-end}
+@media(max-width:480px){.item-form{grid-template-columns:1fr 1fr;}}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0a0a1f;padding:7px 10px;text-align:left;font-size:11px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border)}
+td{padding:7px 10px;border-bottom:1px solid rgba(45,45,78,.4)}
+tr:hover td{background:rgba(123,104,238,.04)}
+
+/* Alert */
+.alert{padding:9px 13px;border-radius:8px;font-size:12px;margin:8px 0}
+.a-err{background:rgba(244,67,54,.12);border:1px solid rgba(244,67,54,.35);color:#ff8a80}
+.a-ok{background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:#69f0ae}
+.a-info{background:rgba(123,104,238,.12);border:1px solid rgba(123,104,238,.35);color:#b39ddb}
+
+/* Stats cards */
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:600px){.stats4{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#0a0a1f;border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)}
+.stat-v{font-size:20px;font-weight:700;margin-bottom:3px}
+.stat-l{font-size:10px;color:var(--text2)}
+
+/* POV cards */
+.pov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:600px){.pov-grid{grid-template-columns:1fr 1fr}}
+
+/* Bar chart */
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.bar-lbl{width:28px;font-size:11px;font-weight:700;text-align:right}
+.bar-track{flex:1;background:#0a0a1f;border-radius:4px;height:18px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .7s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:5px;min-width:4px}
+.bar-fill span{font-size:9px;font-weight:700;color:rgba(0,0,0,.8)}
+.bar-ref{width:44px;font-size:10px;color:var(--text2);text-align:right}
+
+/* Toggle */
+.tog-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.toggle{position:relative;width:40px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;cursor:pointer;inset:0;background:#333;border-radius:20px;transition:.25s}
+.tog-sl::before{content:'';position:absolute;height:14px;width:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s}
+.toggle input:checked+.tog-sl{background:var(--accent)}
+.toggle input:checked+.tog-sl::before{transform:translateX(20px)}
+.tog-lbl{font-size:13px;cursor:pointer;user-select:none}
+
+/* Insight */
+.insight{background:linear-gradient(135deg,rgba(123,104,238,.08),rgba(72,202,228,.08));border:1px solid rgba(123,104,238,.35);border-radius:10px;padding:13px;font-size:13px;line-height:1.7;margin-top:10px}
+
+/* History */
+.h-item{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 11px;background:#0a0a1f;border-radius:8px;margin-bottom:5px;font-size:12px;border:1px solid var(--border)}
+
+/* Empty state */
+.empty{text-align:center;padding:28px 10px;color:var(--text2);font-size:12px}
+.empty-ico{font-size:36px;margin-bottom:6px}
+
+/* Progress */
+.prog-bar{height:5px;background:#0a0a1f;border-radius:3px;overflow:hidden;margin-top:5px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--r));border-radius:3px;transition:width .5s}
+
+/* Roll preview box */
+.preview-box{background:#0a0a1f;border-radius:8px;padding:10px;font-size:12px;border:1px solid var(--border);line-height:1.8}
+
+hr.div{border:none;border-top:1px solid var(--border);margin:14px 0}
+.fg{margin-bottom:10px}
+.sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.c-ssr{color:var(--ssr)}.c-sr{color:var(--sr)}.c-r{color:var(--r)}.c-n{color:var(--n)}
+.c-g{color:var(--green)}.c-red{color:var(--red)}.c-a{color:var(--accent)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%,75%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+.shake{animation:shake .35s ease}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎰 Gacha Drop Rate Simulator</h1>
+  <p>จำลองการสุ่มกาชา · วิเคราะห์โอกาส · วางแผนงบประมาณ</p>
+</div>
+
+<div class="container">
+
+  <!-- Rate + Item Pool -->
+  <div class="grid2">
+
+    <!-- Rate Settings -->
+    <div class="card">
+      <div class="card-head"><span>⚙️</span><h2>ตั้งค่าอัตราการสุ่ม</h2></div>
+      <div class="rate-grid">
+        <div class="fg">
+          <label class="lbl c-ssr">⭐⭐⭐ SSR (%)</label>
+          <input type="number" id="rate-ssr" value="1" min="0" max="100" step="0.1" oninput="updateRateTotal()">
+        </div>
+        <div class="fg">
+          <label class="lbl c-sr">⭐⭐ SR (%)</label>
+          <input type="number" id="rate-sr" value="9" min="0" max="100" step="0.1" oninput="updateRateTotal()">
+        </div>
+        <div class="fg">
+          <label class="lbl c-r">⭐ R (%)</label>
+          <input type="number" id="rate-r" value="30" min="0" max="100" step="0.1" oninput="updateRateTotal()">
+        </div>
+        <div class="fg">
+          <label class="lbl c-n">N (%)</label>
+          <input type="number" id="rate-n" value="60" min="0" max="100" step="0.1" oninput="updateRateTotal()">
+        </div>
+      </div>
+      <div id="rate-total" class="rate-total ok">รวม: 100.0% ✓</div>
+    </div>
+
+    <!-- Item Pool -->
+    <div class="card">
+      <div class="card-head"><span>📦</span><h2>Item Pool</h2></div>
+      <div class="item-form">
+        <div>
+          <label class="lbl">ชื่อ Item</label>
+          <input type="text" id="item-name" placeholder="เช่น ดาบโบราณ" maxlength="30" onkeydown="if(event.key==='Enter')addItem()">
+        </div>
+        <div>
+          <label class="lbl">Rarity</label>
+          <select id="item-rarity">
+            <option value="SSR">⭐⭐⭐ SSR</option>
+            <option value="SR">⭐⭐ SR</option>
+            <option value="R">⭐ R</option>
+            <option value="N">N</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-p" onclick="addItem()">+ Add Item</button>
+        </div>
+      </div>
+      <div id="item-err" style="display:none" class="alert a-err"></div>
+      <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+        <table>
+          <thead><tr><th>#</th><th>ชื่อ Item</th><th>Rarity</th><th>จัดการ</th></tr></thead>
+          <tbody id="item-tbody"></tbody>
+        </table>
+      </div>
+      <div id="pool-summary" style="margin-top:8px;font-size:11px;color:var(--text2)"></div>
+    </div>
+  </div>
+
+  <!-- Simulation Settings -->
+  <div class="card">
+    <div class="card-head"><span>🎲</span><h2>ตั้งค่าการสุ่ม (Simulation)</h2></div>
+    <div class="grid2">
+      <div>
+        <div class="fg">
+          <label class="lbl">จำนวนครั้งที่สุ่ม (Rolls)</label>
+          <input type="number" id="sim-rolls" value="100" min="1" max="100000">
+        </div>
+        <div class="fg">
+          <label class="lbl">ราคาต่อครั้ง (บาท, ใส่ 0 ถ้าฟรี)</label>
+          <input type="number" id="sim-price" value="30" min="0">
+        </div>
+      </div>
+      <div>
+        <!-- Free Roll -->
+        <div class="fg">
+          <div class="tog-row">
+            <label class="toggle"><input type="checkbox" id="fr-tog" onchange="togFreeRoll('fr')"><span class="tog-sl"></span></label>
+            <span class="tog-lbl" onclick="chkTog('fr-tog')">Free Roll Rule</span>
+          </div>
+          <div id="fr-set" style="display:none">
+            <div class="sub2">
+              <div><label class="lbl">สุ่มครบ (ครั้ง)</label><input type="number" id="fr-every" value="10" min="1"></div>
+              <div><label class="lbl">ได้ฟรี (ครั้ง)</label><input type="number" id="fr-grant" value="1" min="1"></div>
+            </div>
+            <p style="font-size:10px;color:var(--text2);margin-top:4px">คำนวณจาก paid rolls เท่านั้น · free rolls ไม่สร้าง free rolls</p>
+          </div>
+        </div>
+        <!-- Pity -->
+        <div class="fg">
+          <div class="tog-row">
+            <label class="toggle"><input type="checkbox" id="pity-tog" onchange="togPity('pity')"><span class="tog-sl"></span></label>
+            <span class="tog-lbl" onclick="chkTog('pity-tog')">Pity System</span>
+            <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(255,215,0,.1);color:var(--ssr);border:1px solid rgba(255,215,0,.3)">Bonus</span>
+          </div>
+          <div id="pity-set" style="display:none">
+            <label class="lbl">การันตี SSR เมื่อสุ่มครบ (ครั้ง)</label>
+            <input type="number" id="pity-n" value="90" min="1" max="1000">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="sim-alert" style="display:none"></div>
+    <button class="btn btn-g btn-lg" onclick="runSimulation()">▶ Start Simulation</button>
+  </div>
+
+  <!-- Simulation Results -->
+  <div id="res-sec" style="display:none">
+    <div class="card">
+      <div class="card-head"><span>📊</span><h2>ผลลัพธ์การสุ่ม</h2></div>
+      <div class="stats4">
+        <div class="stat-card">
+          <div class="stat-v c-a" id="r-total">–</div>
+          <div class="stat-l">Total Rolls</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-v c-ssr" id="r-cost">–</div>
+          <div class="stat-l">ค่าใช้จ่าย (บาท)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-v c-ssr" id="r-ssr">–</div>
+          <div class="stat-l">SSR ที่ได้</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-v" id="r-common">–</div>
+          <div class="stat-l">Rarity ที่ออกมากสุด</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <p style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">Rate ตั้ง vs จริง</p>
+          <table>
+            <thead><tr><th>Rarity</th><th>ตั้งค่า</th><th>จำนวน</th><th>จริง (%)</th></tr></thead>
+            <tbody id="rate-cmp-body"></tbody>
+          </table>
+        </div>
+        <div>
+          <p style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">กราฟเปรียบเทียบ (จริง / ตั้งค่า)</p>
+          <div id="bar-chart"></div>
+        </div>
+      </div>
+      <hr class="div">
+      <p style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">Item ที่ได้รับ</p>
+      <div class="tbl-wrap" style="max-height:200px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Item</th><th>Rarity</th><th>จำนวน</th><th>สัดส่วน</th></tr></thead>
+          <tbody id="item-res-body"></tbody>
+        </table>
+      </div>
+      <hr class="div">
+      <button class="btn btn-b" onclick="exportPull()">📥 Export Latest Pull Result CSV</button>
+    </div>
+  </div>
+
+  <!-- Player POV -->
+  <div class="card">
+    <div class="card-head"><span>👤</span><h2>Player POV Simulator</h2><span class="tag">Advanced · Monte Carlo</span></div>
+    <div class="grid2">
+      <div>
+        <div class="fg"><label class="lbl">งบเติมเงิน (บาท)</label><input type="number" id="pov-budget" value="3000" min="1" oninput="updatePreview()"></div>
+        <div class="fg"><label class="lbl">ราคาต่อ roll (บาท)</label><input type="number" id="pov-price" value="30" min="1" oninput="updatePreview()"></div>
+        <div class="fg"><label class="lbl">จำนวน Simulation (100–10,000)</label><input type="number" id="pov-sims" value="1000" min="100" max="10000"></div>
+      </div>
+      <div>
+        <!-- POV Free Roll -->
+        <div class="fg">
+          <div class="tog-row">
+            <label class="toggle"><input type="checkbox" id="pfr-tog" onchange="togFreeRoll('pfr');updatePreview()"><span class="tog-sl"></span></label>
+            <span class="tog-lbl" onclick="chkTog('pfr-tog')">Free Roll Rule</span>
+          </div>
+          <div id="pfr-set" style="display:none">
+            <div class="sub2">
+              <div><label class="lbl">สุ่มครบ (ครั้ง)</label><input type="number" id="pfr-every" value="10" min="1" oninput="updatePreview()"></div>
+              <div><label class="lbl">ได้ฟรี (ครั้ง)</label><input type="number" id="pfr-grant" value="1" min="1" oninput="updatePreview()"></div>
+            </div>
+          </div>
+        </div>
+        <!-- POV Pity -->
+        <div class="fg">
+          <div class="tog-row">
+            <label class="toggle"><input type="checkbox" id="ppity-tog" onchange="togPity('ppity')"><span class="tog-sl"></span></label>
+            <span class="tog-lbl" onclick="chkTog('ppity-tog')">Pity System</span>
+          </div>
+          <div id="ppity-set" style="display:none">
+            <label class="lbl">การันตี SSR เมื่อสุ่มครบ (ครั้ง)</label>
+            <input type="number" id="ppity-n" value="90" min="1" max="1000">
+          </div>
+        </div>
+        <!-- Preview -->
+        <div class="preview-box" id="roll-preview">
+          <div>Paid Rolls: <span id="prev-paid" class="c-a" style="font-weight:700">100</span></div>
+          <div>Free Rolls: <span id="prev-free" class="c-g" style="font-weight:700">0</span></div>
+          <div>Total Rolls: <span id="prev-total" class="c-ssr" style="font-weight:700">100</span></div>
+          <div class="prog-bar"><div id="prev-prog" class="prog-fill" style="width:10%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="pov-alert" style="display:none"></div>
+    <button class="btn btn-p btn-lg" onclick="runMonteCarlo()">🔮 Run Monte Carlo Simulation</button>
+  </div>
+
+  <!-- POV Results -->
+  <div id="pov-sec" style="display:none">
+    <div class="card">
+      <div class="card-head"><span>🔮</span><h2>ผลลัพธ์ Player POV</h2></div>
+      <div class="pov-grid">
+        <div class="stat-card"><div class="stat-v c-a" id="pov-paid">–</div><div class="stat-l">Paid Rolls</div></div>
+        <div class="stat-card"><div class="stat-v c-g" id="pov-free">–</div><div class="stat-l">Free Rolls</div></div>
+        <div class="stat-card"><div class="stat-v c-ssr" id="pov-total">–</div><div class="stat-l">Total Rolls</div></div>
+        <div class="stat-card"><div class="stat-v c-g" id="pov-p1">–</div><div class="stat-l">โอกาสได้ SSR ≥1</div></div>
+        <div class="stat-card"><div class="stat-v c-red" id="pov-p0">–</div><div class="stat-l">โอกาสไม่ได้ SSR</div></div>
+        <div class="stat-card"><div class="stat-v c-ssr" id="pov-avg">–</div><div class="stat-l">SSR เฉลี่ย</div></div>
+      </div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="stat-card"><div class="stat-v c-ssr" id="pov-best">–</div><div class="stat-l">Best SSR (สูงสุด)</div></div>
+        <div class="stat-card"><div class="stat-v c-r" id="pov-worst">–</div><div class="stat-l">Worst SSR (ต่ำสุด)</div></div>
+      </div>
+      <div class="insight" id="pov-insight">–</div>
+      <hr class="div">
+      <button class="btn btn-b" onclick="exportPOV()">📥 Export Player POV Summary CSV</button>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-head">
+      <span>📜</span><h2>ประวัติการสุ่ม (History)</h2>
+      <button class="btn btn-sm btn-del" style="margin-left:auto" onclick="clearHistory()">ล้างประวัติ</button>
+    </div>
+    <div id="history-wrap">
+      <div class="empty"><div class="empty-ico">📭</div>ยังไม่มีประวัติ</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+'use strict';
+
+// ── State ─────────────────────────────────────────────
+let items = [], idCnt = 1;
+let lastPull = null, lastPOV = null, histList = [];
+const MAX_H = 10;
+const RARITY_ORDER = ['SSR','SR','R','N'];
+
+// ── Rate ──────────────────────────────────────────────
+function getRates(){
+  return {
+    SSR: parseFloat(document.getElementById('rate-ssr').value)||0,
+    SR:  parseFloat(document.getElementById('rate-sr').value)||0,
+    R:   parseFloat(document.getElementById('rate-r').value)||0,
+    N:   parseFloat(document.getElementById('rate-n').value)||0,
+  };
+}
+function rateSum(r){ return parseFloat((r.SSR+r.SR+r.R+r.N).toFixed(8)); }
+function updateRateTotal(){
+  const r=getRates(), s=rateSum(r), ok=Math.abs(s-100)<0.001;
+  const el=document.getElementById('rate-total');
+  el.className='rate-total '+(ok?'ok':'err-box');
+  el.textContent=`รวม: ${s.toFixed(1)}%  `+(ok?'✓':'✗  ต้องรวมเป็น 100%');
+  return ok;
+}
+
+// ── Item Pool ─────────────────────────────────────────
+function addItem(){
+  const nameEl=document.getElementById('item-name');
+  const name=nameEl.value.trim();
+  if(!name){
+    nameEl.classList.add('err','shake');
+    setTimeout(()=>nameEl.classList.remove('err','shake'),600);
+    showEl('item-err','กรุณากรอกชื่อ item','a-err');
+    return;
+  }
+  hide('item-err');
+  items.push({id:idCnt++, name, rarity:document.getElementById('item-rarity').value});
+  nameEl.value='';
+  nameEl.focus();
+  renderItems();
+}
+function delItem(id){items=items.filter(i=>i.id!==id);renderItems();}
+function editItem(id){
+  const it=items.find(i=>i.id===id);if(!it)return;
+  const n=prompt(`แก้ไขชื่อ (${it.rarity}):`,it.name);
+  if(n!==null&&n.trim()){it.name=n.trim();renderItems();}
+}
+function renderItems(){
+  const tb=document.getElementById('item-tbody');
+  const summary=document.getElementById('pool-summary');
+  if(!items.length){
+    tb.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-ico">📭</div>ยังไม่มี item</div></td></tr>';
+    summary.textContent='';return;
+  }
+  tb.innerHTML=items.map((it,i)=>`<tr>
+    <td style="color:var(--text2)">${i+1}</td>
+    <td>${esc(it.name)}</td>
+    <td><span class="badge b-${it.rarity.toLowerCase()}">${it.rarity}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm btn-edt" onclick="editItem(${it.id})">✏️</button>
+      <button class="btn btn-sm btn-del" onclick="delItem(${it.id})">🗑️</button>
+    </td>
+  </tr>`).join('');
+  const cnt=RARITY_ORDER.map(r=>{ const n=items.filter(i=>i.rarity===r).length; return n?`${r}:${n}`:null; }).filter(Boolean);
+  summary.textContent='Item pool: '+cnt.join(' · ');
+}
+
+// ── Toggles ───────────────────────────────────────────
+function chkTog(id){document.getElementById(id).click();}
+function togFreeRoll(p){
+  const on=document.getElementById(p+'-tog').checked;
+  document.getElementById(p+'-set').style.display=on?'block':'none';
+}
+function togPity(p){
+  const on=document.getElementById(p+'-tog').checked;
+  document.getElementById(p+'-set').style.display=on?'block':'none';
+}
+
+// ── Roll Preview ──────────────────────────────────────
+function updatePreview(){
+  const budget=parseFloat(document.getElementById('pov-budget').value)||0;
+  const price=parseFloat(document.getElementById('pov-price').value)||1;
+  const paid=Math.floor(budget/price);
+  const frOn=document.getElementById('pfr-tog').checked;
+  const frEv=parseInt(document.getElementById('pfr-every').value)||0;
+  const frGr=parseInt(document.getElementById('pfr-grant').value)||0;
+  const free=frOn&&frEv>0?Math.floor(paid/frEv)*frGr:0;
+  const total=paid+free;
+  setText('prev-paid',paid.toLocaleString());
+  setText('prev-free',free.toLocaleString());
+  setText('prev-total',total.toLocaleString());
+  document.getElementById('prev-prog').style.width=Math.min(100,(total/500)*100)+'%';
+}
+
+// ── Core Roll ─────────────────────────────────────────
+function rollOne(rates, pityCnt, pityOn, pityN){
+  if(pityOn && pityCnt>=pityN-1) return {rarity:'SSR', pityCnt:0};
+  const rand=Math.random()*100;
+  let cum=0;
+  for(const r of RARITY_ORDER){
+    cum+=rates[r];
+    if(rand<cum) return {rarity:r, pityCnt: r==='SSR'?0:pityCnt+1};
+  }
+  return {rarity:'N', pityCnt:pityCnt+1};
+}
+function pickItem(rarity){
+  const pool=items.filter(i=>i.rarity===rarity);
+  return pool.length ? pool[Math.floor(Math.random()*pool.length)].name : '???';
+}
+function calcFree(paid, on, every, grant){
+  return on&&every>0 ? Math.floor(paid/every)*grant : 0;
+}
+
+// ── Validate ──────────────────────────────────────────
+function validate(rolls, price){
+  const r=getRates(); const errs=[];
+  if(!updateRateTotal()) errs.push('Rate รวมต้องเท่ากับ 100%');
+  RARITY_ORDER.forEach(k=>{ if(r[k]<0) errs.push(`Rate ${k} ห้ามติดลบ`); });
+  RARITY_ORDER.forEach(k=>{ if(r[k]>0&&!items.some(i=>i.rarity===k)) errs.push(`Rarity "${k}" มี rate ${r[k]}% แต่ไม่มี item ใน pool`); });
+  if(!rolls||rolls<=0) errs.push('จำนวน roll ต้องมากกว่า 0');
+  if(rolls>100000) errs.push('จำนวน roll สูงสุด 100,000');
+  if(isNaN(price)||price<0) errs.push('ราคาต่อครั้งต้อง >= 0');
+  return errs;
+}
+
+// ── Run Simulation ────────────────────────────────────
+function runSimulation(){
+  const alertEl=document.getElementById('sim-alert');
+  const rolls=parseInt(document.getElementById('sim-rolls').value);
+  const price=parseFloat(document.getElementById('sim-price').value);
+  const errs=validate(rolls, price);
+  if(errs.length){showEl('sim-alert',errs.join('<br>'),'a-err');return;}
+  hide('sim-alert');
+
+  const rates=getRates();
+  const pityOn=document.getElementById('pity-tog').checked;
+  const pityN=parseInt(document.getElementById('pity-n').value)||90;
+  const frOn=document.getElementById('fr-tog').checked;
+  const frEv=parseInt(document.getElementById('fr-every').value)||0;
+  const frGr=parseInt(document.getElementById('fr-grant').value)||0;
+  const free=calcFree(rolls,frOn,frEv,frGr);
+  const total=rolls+free;
+
+  const rollLog=[], counts={SSR:0,SR:0,R:0,N:0}, itemCnt={};
+  let pityCnt=0;
+  for(let i=0;i<total;i++){
+    const isPaid=i<rolls;
+    const res=rollOne(rates,pityCnt,pityOn,pityN);
+    pityCnt=res.pityCnt;
+    const item=pickItem(res.rarity);
+    counts[res.rarity]++;
+    itemCnt[item]=(itemCnt[item]||0)+1;
+    rollLog.push({no:i+1,rarity:res.rarity,item,costType:isPaid?'Paid':'Free',cost:isPaid?price:0});
+  }
+  const totalCost=rolls*price;
+  const mostCommon=RARITY_ORDER.slice().sort((a,b)=>counts[b]-counts[a])[0];
+  lastPull={rollLog,counts,itemCnt,total,paidRolls:rolls,freeRolls:free,totalCost,rates,mostCommon};
+  pushHistory('🎲 Single Sim',{rolls,free,total,cost:totalCost,counts});
+  renderSim(lastPull);
+  document.getElementById('res-sec').style.display='block';
+  scrollToEl('res-sec');
+}
+
+// ── Render Simulation ─────────────────────────────────
+function renderSim(d){
+  const {counts,total,totalCost,rates,mostCommon,itemCnt}=d;
+  setText('r-total',total.toLocaleString());
+  setText('r-cost',totalCost.toLocaleString());
+  setText('r-ssr',counts.SSR.toLocaleString());
+  const el=document.getElementById('r-common');
+  el.textContent=mostCommon; el.className='stat-v c-'+mostCommon.toLowerCase();
+
+  // Rate compare table
+  document.getElementById('rate-cmp-body').innerHTML=RARITY_ORDER.map(r=>{
+    const act=((counts[r]/total)*100).toFixed(2);
+    const set=rates[r].toFixed(1);
+    const diff=(parseFloat(act)-parseFloat(set)).toFixed(2);
+    const dc=Math.abs(diff)<2?'c-g':'';
+    return `<tr>
+      <td><span class="badge b-${r.toLowerCase()}">${r}</span></td>
+      <td>${set}%</td><td>${counts[r].toLocaleString()}</td>
+      <td>${act}% <small class="${dc}" style="font-size:10px">(${diff>0?'+':''}${diff})</small></td>
+    </tr>`;
+  }).join('');
+
+  // Bar chart
+  const barClr={SSR:'#ffd700',SR:'#c77dff',R:'#48cae4',N:'#909090'};
+  document.getElementById('bar-chart').innerHTML=RARITY_ORDER.map(r=>{
+    const act=(counts[r]/total)*100;
+    const set=rates[r];
+    return `<div class="bar-row">
+      <div class="bar-lbl" style="color:${barClr[r]}">${r}</div>
+      <div style="flex:1">
+        <div class="bar-row" style="margin-bottom:2px">
+          <div class="bar-track" style="flex:1">
+            <div class="bar-fill" style="width:${Math.min(100,act)}%;background:${barClr[r]}55">
+              <span>${act.toFixed(1)}%</span>
+            </div>
+          </div>
+          <span class="bar-ref">จริง</span>
+        </div>
+        <div class="bar-row">
+          <div class="bar-track" style="flex:1;height:8px">
+            <div class="bar-fill" style="width:${Math.min(100,set)}%;background:${barClr[r]}"></div>
+          </div>
+          <span class="bar-ref" style="font-size:9px">${set}% ตั้ง</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Item results
+  const itemR={};items.forEach(i=>{itemR[i.name]=i.rarity;});
+  const sorted=Object.entries(itemCnt).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('item-res-body').innerHTML=sorted.length?sorted.map(([n,c])=>{
+    const rar=itemR[n]||'N';
+    return `<tr>
+      <td>${esc(n)}</td>
+      <td><span class="badge b-${rar.toLowerCase()}">${rar}</span></td>
+      <td>${c}</td><td>${((c/total)*100).toFixed(2)}%</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text2)">ไม่มีข้อมูล</td></tr>';
+}
+
+// ── Monte Carlo ────────────────────────────────────────
+function runMonteCarlo(){
+  const alertEl=document.getElementById('pov-alert');
+  if(!updateRateTotal()){showEl('pov-alert','Rate รวมต้องเท่ากับ 100%','a-err');return;}
+  const rates=getRates();
+  for(const k of RARITY_ORDER){
+    if(rates[k]>0&&!items.some(i=>i.rarity===k)){
+      showEl('pov-alert',`Rarity "${k}" มี rate แต่ไม่มี item ใน pool`,'a-err');return;
+    }
+  }
+  const budget=parseFloat(document.getElementById('pov-budget').value);
+  const price=parseFloat(document.getElementById('pov-price').value);
+  const simN=parseInt(document.getElementById('pov-sims').value);
+  if(!budget||budget<=0){showEl('pov-alert','กรุณากรอกงบเติมเงิน','a-err');return;}
+  if(!price||price<=0){showEl('pov-alert','ราคาต่อ roll ต้องมากกว่า 0','a-err');return;}
+  if(!simN||simN<100||simN>10000){showEl('pov-alert','จำนวน simulation ต้องอยู่ระหว่าง 100–10,000','a-err');return;}
+  const paid=Math.floor(budget/price);
+  if(paid<=0){showEl('pov-alert','งบประมาณไม่พอแม้แต่ 1 roll','a-err');return;}
+  hide('pov-alert');
+
+  const frOn=document.getElementById('pfr-tog').checked;
+  const frEv=parseInt(document.getElementById('pfr-every').value)||0;
+  const frGr=parseInt(document.getElementById('pfr-grant').value)||0;
+  const free=calcFree(paid,frOn,frEv,frGr);
+  const total=paid+free;
+  const pityOn=document.getElementById('ppity-tog').checked;
+  const pityN=parseInt(document.getElementById('ppity-n').value)||90;
+
+  const ssrArr=[];
+  for(let s=0;s<simN;s++){
+    let ssr=0,pityCnt=0;
+    for(let roll=0;roll<total;roll++){
+      const res=rollOne(rates,pityCnt,pityOn,pityN);
+      pityCnt=res.pityCnt;
+      if(res.rarity==='SSR') ssr++;
+    }
+    ssrArr.push(ssr);
+  }
+  const p1=ssrArr.filter(c=>c>=1).length/simN;
+  const p0=ssrArr.filter(c=>c===0).length/simN;
+  const avg=ssrArr.reduce((a,b)=>a+b,0)/simN;
+  const best=Math.max(...ssrArr), worst=Math.min(...ssrArr);
+  lastPOV={budget,price,paid,free,total,simN,p1,p0,avg,best,worst,rates};
+  pushHistory('🔮 Monte Carlo',{paid,free,total,budget,simN,p1});
+
+  setText('pov-paid',paid.toLocaleString());
+  setText('pov-free',free.toLocaleString());
+  setText('pov-total',total.toLocaleString());
+  setText('pov-p1',(p1*100).toFixed(1)+'%');
+  setText('pov-p0',(p0*100).toFixed(1)+'%');
+  setText('pov-avg',avg.toFixed(2));
+  setText('pov-best',best);
+  setText('pov-worst',worst);
+  document.getElementById('pov-insight').innerHTML=genInsight(lastPOV);
+  document.getElementById('pov-sec').style.display='block';
+  scrollToEl('pov-sec');
+}
+
+function genInsight({budget,price,paid,free,total,simN,p1,p0,avg,best,worst}){
+  let verdict='';
+  if(p1>=0.9) verdict=`<strong class="c-g">โอกาสสูงมาก!</strong> แทบจะการันตี SSR`;
+  else if(p1>=0.6) verdict=`<strong class="c-ssr">โอกาสดี</strong> มีโอกาสได้ SSR มากกว่าครึ่ง`;
+  else if(p1>=0.3) verdict=`<strong style="color:var(--orange)">โอกาสปานกลาง</strong> ต้องลุ้นพอสมควร`;
+  else verdict=`<strong class="c-red">โอกาสค่อนข้างต่ำ</strong> งบอาจไม่พอ`;
+  const frTxt=free>0?` รวม <strong class="c-g">${free} free rolls</strong>`:'';
+  return `🎯 <strong>สรุป:</strong> เติม <strong>${budget.toLocaleString()} บาท</strong> ได้ <strong class="c-a">${paid} paid rolls</strong>${frTxt} = <strong class="c-ssr">${total} total rolls</strong><br>
+${verdict} — โอกาสได้ SSR ≥1 ตัว: <strong class="c-g">${(p1*100).toFixed(1)}%</strong><br>
+เฉลี่ยได้ SSR <strong>${avg.toFixed(2)} ตัว</strong> ต่อรอบ · ดีสุด <strong class="c-ssr">${best} ตัว</strong> · แย่สุด <strong class="c-red">${worst} ตัว</strong> · จาก <strong>${simN.toLocaleString()} simulations</strong>`;
+}
+
+// ── History ────────────────────────────────────────────
+function pushHistory(type, d){
+  const t=new Date().toLocaleTimeString('th-TH');
+  histList.unshift({type,d,t});
+  if(histList.length>MAX_H) histList.pop();
+  renderHistory();
+}
+function renderHistory(){
+  const w=document.getElementById('history-wrap');
+  if(!histList.length){
+    w.innerHTML='<div class="empty"><div class="empty-ico">📭</div>ยังไม่มีประวัติ</div>';
+    return;
+  }
+  w.innerHTML=histList.map((h,i)=>{
+    const num=histList.length-i;
+    if(h.type.includes('Single')){
+      const d=h.d;
+      return `<div class="h-item">
+        <span class="c-a" style="font-weight:700">#${num}</span>
+        <span style="color:var(--text2)">${h.t}</span>
+        <span>${h.type}</span>
+        <span style="color:var(--text2)">${d.total.toLocaleString()} rolls${d.free>0?' (+'+d.free+' free)':''}</span>
+        <span class="c-ssr">SSR: ${d.counts.SSR}</span>
+        <span style="color:var(--text2)">${d.cost.toLocaleString()} บาท</span>
+      </div>`;
+    } else {
+      const d=h.d;
+      return `<div class="h-item">
+        <span class="c-a" style="font-weight:700">#${num}</span>
+        <span style="color:var(--text2)">${h.t}</span>
+        <span>${h.type}</span>
+        <span style="color:var(--text2)">${d.total.toLocaleString()} rolls · ${d.simN.toLocaleString()} sims</span>
+        <span class="c-g">P(≥1 SSR): ${(d.p1*100).toFixed(1)}%</span>
+        <span style="color:var(--text2)">${d.budget.toLocaleString()} บาท</span>
+      </div>`;
+    }
+  }).join('');
+}
+function clearHistory(){histList=[];renderHistory();}
+
+// ── CSV Export ─────────────────────────────────────────
+function exportPull(){
+  if(!lastPull) return;
+  const rows=[['Roll No.','Rarity','Item Name','Cost Type','Cost (บาท)']];
+  lastPull.rollLog.forEach(r=>rows.push([r.no,r.rarity,r.item,r.costType,r.cost]));
+  dlCSV(rows,'gacha_pull_result.csv');
+}
+function exportPOV(){
+  if(!lastPOV) return;
+  const v=lastPOV;
+  const rows=[
+    ['Parameter','Value'],
+    ['Budget (บาท)',v.budget],['Price per Roll (บาท)',v.price],
+    ['Paid Rolls',v.paid],['Free Rolls',v.free],['Total Rolls',v.total],
+    ['Simulation Count',v.simN],
+    ['Chance >= 1 SSR',`${(v.p1*100).toFixed(2)}%`],
+    ['Chance 0 SSR',`${(v.p0*100).toFixed(2)}%`],
+    ['Average SSR per Sim',v.avg.toFixed(4)],
+    ['Best SSR',v.best],['Worst SSR',v.worst],
+    ['Rate SSR',v.rates.SSR+'%'],['Rate SR',v.rates.SR+'%'],
+    ['Rate R',v.rates.R+'%'],['Rate N',v.rates.N+'%'],
+  ];
+  dlCSV(rows,'gacha_pov_summary.csv');
+}
+function dlCSV(rows, filename){
+  const bom='﻿';
+  const csv=bom+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Helpers ────────────────────────────────────────────
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function hide(id){document.getElementById(id).style.display='none';}
+function showEl(id,msg,cls){const e=document.getElementById(id);e.style.display='block';e.className='alert '+cls;e.innerHTML=msg;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function scrollToEl(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});}
+
+// ── Init ───────────────────────────────────────────────
+updateRateTotal();
+updatePreview();
+// Default sample items
+[
+  {name:'ดาบในตำนาน',rarity:'SSR'},{name:'ไม้กายสิทธิ์',rarity:'SSR'},
+  {name:'โล่มังกร',rarity:'SR'},{name:'หมวกนักรบ',rarity:'SR'},
+  {name:'ดาบธรรมดา',rarity:'R'},{name:'ธนูไม้',rarity:'R'},{name:'เกราะเหล็ก',rarity:'R'},
+  {name:'หินเล็ก',rarity:'N'},{name:'ใบไม้แห้ง',rarity:'N'},
+].forEach(({name,rarity})=>items.push({id:idCnt++,name,rarity}));
+renderItems();
+</script>
+</body>
+</html>
