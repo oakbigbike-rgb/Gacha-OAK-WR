@@ -1,12 +1,15 @@
 # Prompt Log — Gacha Drop Rate Simulator
 
-**วันที่:** 4 มิถุนายน 2569  
 **ผู้ทำ:** oakbigbike-rgb  
 **AI ที่ใช้:** Claude Sonnet 4.6 (Claude Code)
 
 ---
 
-## Prompt 1 — อ่านโจทย์และสร้างไฟล์หลัก
+## 📅 วันที่ 4 มิถุนายน 2569 — Build & Deploy
+
+---
+
+### Prompt 1 — อ่านโจทย์และสร้างไฟล์หลัก
 
 **User:**
 ```
@@ -37,7 +40,7 @@
 
 ---
 
-## Prompt 2 — ขอลิงก์ไฟล์
+### Prompt 2 — ขอลิงก์ไฟล์มาทดสอบ
 
 **User:**
 ```
@@ -51,7 +54,7 @@
 
 ---
 
-## Prompt 3 — รีเชคกับโจทย์
+### Prompt 3 — รีเชคกับโจทย์
 
 **User:**
 ```
@@ -67,7 +70,7 @@
 
 ---
 
-## Prompt 4 — รีเชครอบสุดท้ายก่อนส่ง
+### Prompt 4 — รีเชครอบสุดท้ายก่อนส่ง
 
 **User:**
 ```
@@ -85,7 +88,7 @@
 | 4 | Rolls = 0 → error | ✅ |
 | 5 | Rolls > 100,000 → error | ✅ |
 | 6 | Price < 0 → error | ✅ |
-| 7 | Simulation logic → SSR rate ~1% (ได้ 1.1% จาก 10,000 rolls) | ✅ |
+| 7 | SSR rate ~1% (ได้ 1.1% จาก 10,000 rolls) | ✅ |
 | 8 | Free Roll: floor(100/10)×1 = 10 ไม่ compounding | ✅ |
 | 9 | Pity: pityCnt ≥ threshold−1 → force SSR | ✅ |
 | 10 | Pity reset เมื่อได้ SSR | ✅ |
@@ -99,7 +102,7 @@
 
 ---
 
-## Prompt 5 — สร้างไฟล์ส่งงานให้ครบ
+### Prompt 5 — สร้างไฟล์ส่งงานให้ครบ
 
 **User:**
 ```
@@ -109,11 +112,11 @@
 **AI ทำอะไร:**
 - สร้าง `prompt-log.md` (ไฟล์นี้)
 - สร้าง `reflection.txt`
-- Clone repo และ push ทั้ง 3 ไฟล์ขึ้น GitHub
+- Clone repo และ push ทั้งหมดขึ้น GitHub
 
 ---
 
-## Prompt 6 — Deploy Demo
+### Prompt 6 — Deploy Demo
 
 **User:**
 ```
@@ -122,9 +125,99 @@
 
 **AI ทำอะไร:**
 - ตรวจสอบ Vercel CLI → ไม่มีในเครื่อง
-- สร้าง `index.html` (copy จาก gacha-simulator.html) เพื่อให้ GitHub Pages serve ที่ root
+- สร้าง `index.html` (copy จาก gacha-simulator.html) สำหรับ GitHub Pages
 - Enable GitHub Pages ผ่าน GitHub API
-- ยืนยัน HTTP 200 ที่ `https://oakbigbike-rgb.github.io/Gacha-OAK-WR/`
+- ยืนยัน HTTP 200 ที่ https://oakbigbike-rgb.github.io/Gacha-OAK-WR/
+
+---
+
+## 📅 วันที่ 6 มิถุนายน 2569 — Review & Bug Fix
+
+---
+
+### Prompt 7 — รีเชคตามตาราง Requirements จริง
+
+**User:**
+```
+รีเชคอีกรอบแล้วส่งลิงค์ตัวจริงมาได้เลย
+[แนบภาพตาราง requirements จาก Excel]
+```
+
+**AI ทำอะไร:**
+- รัน automated tests ตาม requirements table ทุกแถว (16 rows)
+- ตรวจสอบ 9 requirement หลักจากตาราง Must / Advanced / Bonus
+- ผล: ผ่านครบทุกข้อ ไม่มีขาด
+
+---
+
+### Prompt 8 — พบ Bug: Rate ติดลบยังผ่าน Validation
+
+**User:**
+```
+ดูดีๆตามโจทย์เค้าห้ามติดลบ ของเรามันติดลบได้แก้ให้หน่อย
+[แนบภาพ SSR=-1, SR=11 แต่แสดงสีเขียว รวม: 100.0% ✓]
+```
+
+**AI วิเคราะห์ปัญหา:**
+- `-1 + 11 + 30 + 60 = 100` → validation เดิมตรวจแค่ `sum === 100`
+- ทำให้ค่าติดลบ "หลุด" ผ่านได้ถ้ายังรวมได้ 100%
+
+**AI แก้ไข (`updateRateTotal`):**
+```js
+// เดิม — ตรวจแค่ sum
+const ok = Math.abs(s - 100) < 0.001
+
+// ใหม่ — ตรวจทั้ง sum AND ไม่มีค่าลบ
+const hasNeg = Object.values(r).some(v => v < 0)
+const ok = Math.abs(s - 100) < 0.001 && !hasNeg
+```
+
+**พฤติกรรมหลังแก้:**
+- ค่าติดลบ → แสดง `❌ ห้ามใส่ค่าติดลบ` สีแดงทันที (real-time)
+- Input ที่ติดลบ → ขอบแดง highlight
+- กด Simulate → block ไม่ให้รัน
+- ค่า 0 ยังผ่านได้ (ไม่ใช่ค่าลบ)
+
+**Tests หลังแก้ (ผ่านทั้งหมด):**
+
+| Test | ผล |
+|------|----|
+| SSR=-1, SR=11, R=30, N=60 (รวม=100) → สีแดง | ✅ |
+| Input SSR highlight ขอบแดง | ✅ |
+| Simulate → blocked | ✅ |
+| SSR=0 (ไม่ติดลบ) → ยังผ่าน | ✅ |
+| SSR=1, SR=9, R=30, N=60 → สีเขียว ✓ | ✅ |
+
+**Push GitHub:**
+```
+commit: "Fix: block negative rate values in real-time validation"
+```
+
+---
+
+### Prompt 9 — รีเชคตาม Requirements Table รอบสุดท้าย
+
+**User:**
+```
+รีเชคอีกรอบขาดอันไหนทำได้เลย
+[แนบตาราง 9 requirements: Must/Advanced/Bonus]
+```
+
+**AI ทำอะไร:**
+- รัน live tests ครบ 9 requirements ผ่าน browser console
+- ผล: ผ่านทุกข้อ ไม่มีขาด
+
+| # | Requirement | ระดับ | ผล |
+|---|------------|-------|----|
+| 1 | Rate Setting | Must | ✅ |
+| 2 | Item Pool Management | Must | ✅ |
+| 3 | Single Simulation | Must | ✅ |
+| 4 | Result Display | Must | ✅ |
+| 5 | Export CSV (Pull + POV) | Must | ✅ |
+| 6 | Validation | Must | ✅ |
+| 7 | Player POV Simulator | Advanced | ✅ |
+| 8 | Free Roll Rule | Advanced | ✅ |
+| 9 | Pity / History / Chart | Bonus | ✅ |
 
 ---
 
@@ -153,4 +246,11 @@ loop simN ครั้ง:
 free = floor(paidRolls / every) × grant
 → นับจาก paid rolls เท่านั้น
 → free rolls ไม่สร้าง free rolls (ไม่ recursive)
+```
+
+### Negative Rate Fix (เพิ่มวันที่ 6 มิ.ย.)
+```
+hasNeg = rates.some(v => v < 0)
+ok = sum === 100 AND !hasNeg
+→ -1+11+30+60=100 ไม่ผ่านอีกต่อไป
 ```
