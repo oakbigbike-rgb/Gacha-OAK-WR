@@ -403,10 +403,19 @@ function getRates(){
 }
 function rateSum(r){ return parseFloat((r.SSR+r.SR+r.R+r.N).toFixed(8)); }
 function updateRateTotal(){
-  const r=getRates(), s=rateSum(r), ok=Math.abs(s-100)<0.001;
+  const r=getRates(), s=rateSum(r);
+  const hasNeg=Object.values(r).some(v=>v<0);
+  const ok=Math.abs(s-100)<0.001 && !hasNeg;
   const el=document.getElementById('rate-total');
   el.className='rate-total '+(ok?'ok':'err-box');
-  el.textContent=`รวม: ${s.toFixed(1)}%  `+(ok?'✓':'✗  ต้องรวมเป็น 100%');
+  // highlight negative inputs
+  ['rate-ssr','rate-sr','rate-r','rate-n'].forEach(id=>{
+    const inp=document.getElementById(id);
+    if(parseFloat(inp.value)<0) inp.classList.add('err');
+    else inp.classList.remove('err');
+  });
+  if(hasNeg) el.textContent='❌ ห้ามใส่ค่าติดลบ';
+  else el.textContent=`รวม: ${s.toFixed(1)}%  `+(ok?'✓':'✗  ต้องรวมเป็น 100%');
   return ok;
 }
 
